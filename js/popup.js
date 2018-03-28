@@ -11,6 +11,10 @@ $(function() {
 function init() {
     const $service = $('#service');
     const $options = $('#options');
+    const $diff = $('#diff');
+    $diff.click(() => KTR.service.getDifference((diff) => {
+        $('#diff').text(diff).removeClass('enabled');
+    }));
 
     // 認証情報があれば出社、退社を表示
     if (KTR.credential.valid()) {

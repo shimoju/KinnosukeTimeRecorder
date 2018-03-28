@@ -508,6 +508,46 @@
             });
         },
 
+        // 所定労働時間に対する時間差を取得する
+        getDifference(cb) {
+            KTR.service._requestWithURL({
+                method: 'GET'
+            },
+            KTR.service.url() + '?module=timesheet&action=browse',
+                (html) => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    // 所定労働日数、所定労働時間、出勤日数…が入っているtable
+                    const table = doc.querySelector('table#total_list0 tr:nth-child(2)');
+
+                    // 所定労働日数
+                    const normalWorkingDays = Number(table.querySelector('td:nth-child(1)').textContent);
+                    // 所定労働時間
+                    const normalWorkingHours = table.querySelector('td:nth-child(2)')
+                        .textContent.split(':').map(Number);
+                    const normalWorkingMinutes = normalWorkingHours[0] * 60 + normalWorkingHours[1];
+                    // 出勤日数
+                    const workingDays = Number(table.querySelector('td:nth-child(3)').textContent);
+                    // 有給休暇日数
+                    const paidVacation = Number(table.querySelector('td:nth-child(4)').textContent);
+                    const specialVacation = Number(table.querySelector('td:nth-child(5)').textContent);
+                    // 実働時間
+                    const actualWorkingHours = table.querySelector('td:nth-child(19)')
+                        .textContent.split(':').map(Number);
+                    const actualWorkingMinutes = actualWorkingHours[0] * 60 + actualWorkingHours[1];
+                    // 1日あたりの所定労働時間 = 所定労働時間 / 所定労働日数
+                    const normalWorkingMinutesPerDay = normalWorkingMinutes / normalWorkingDays;
+                    // 実働日数 = 出勤日数 + (有休日数 + 特休日数)
+                    const actualWorkingDays = workingDays + paidVacation + specialVacation;
+                    // 所定労働時間に対する時間差 = 実働時間 - 実働日数 * 1日あたりの所定労働時間
+                    const difference = actualWorkingMinutes - actualWorkingDays * normalWorkingMinutesPerDay;
+                    // `n時間m分`の形式で表示
+                    const sign = Math.sign(difference) >= 0 ? '+' : ''
+                    const differenceStr = `${sign}${Math.floor(difference / 60)}時間${difference % 60}分`;
+                    cb(differenceStr);
+                });
+        },
+
         // GETリクエストを送信する
         get(cb) {
             KTR.service._request({
@@ -528,6 +568,16 @@
 
         _request(init, cb) {
             fetch(KTR.service.url(), Object.assign({
+                cache: 'no-store',
+                credentials: 'include'
+            }, init))
+                .then((res) => res.text())
+                .then(cb)
+                .catch(KTR.service.error);
+        },
+
+        _requestWithURL(init, url, cb) {
+            fetch(url, Object.assign({
                 cache: 'no-store',
                 credentials: 'include'
             }, init))
