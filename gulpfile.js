@@ -36,3 +36,10 @@ gulp.task('prepare', () => {
         gulp.src(libs).pipe(gulp.dest('tmp/vendor/'))
     );
 });
+
+gulp.task('vendor', () => {
+    var merge = require('event-stream').merge;
+    return merge(
+        gulp.src(libs).pipe(gulp.dest('vendor/'))
+    );
+});
