@@ -543,7 +543,7 @@
                     const difference = actualWorkingMinutes - actualWorkingDays * normalWorkingMinutesPerDay;
                     // `n時間m分`の形式で表示
                     const sign = Math.sign(difference) >= 0 ? '+' : ''
-                    const differenceStr = `${sign}${Math.floor(difference / 60)}時間${difference % 60}分`;
+                    const differenceStr = `${sign}${Math.trunc(difference / 60)}時間${difference % 60}分`;
                     cb(differenceStr);
                 });
         },
