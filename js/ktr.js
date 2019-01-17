@@ -511,9 +511,9 @@
         // 所定労働時間に対する時間差を取得する
         getDifference(cb) {
             KTR.service._requestWithURL({
-                method: 'GET'
-            },
-            KTR.service.url() + '?module=timesheet&action=browse',
+                    method: 'GET'
+                },
+                KTR.service.url() + '?module=timesheet&action=browse',
                 (html) => {
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(html, 'text/html');
@@ -523,28 +523,55 @@
                     // 所定労働日数
                     const normalWorkingDays = Number(table.querySelector('td:nth-child(1)').textContent);
                     // 所定労働時間
-                    const normalWorkingHours = table.querySelector('td:nth-child(2)')
-                        .textContent.split(':').map(Number);
-                    const normalWorkingMinutes = normalWorkingHours[0] * 60 + normalWorkingHours[1];
+                    const normalWorkingHours = table.querySelector('td:nth-child(2)').textContent.split(':').map(Number);
                     // 出勤日数
                     const workingDays = Number(table.querySelector('td:nth-child(3)').textContent);
                     // 有給休暇日数
                     const paidVacation = Number(table.querySelector('td:nth-child(4)').textContent);
                     const specialVacation = Number(table.querySelector('td:nth-child(5)').textContent);
                     // 実働時間
-                    const actualWorkingHours = table.querySelector('td:nth-child(19)')
-                        .textContent.split(':').map(Number);
-                    const actualWorkingMinutes = actualWorkingHours[0] * 60 + actualWorkingHours[1];
-                    // 1日あたりの所定労働時間 = 所定労働時間 / 所定労働日数
-                    const normalWorkingMinutesPerDay = normalWorkingMinutes / normalWorkingDays;
-                    // 実働日数 = 出勤日数 + (有休日数 + 特休日数)
-                    const actualWorkingDays = workingDays + paidVacation + specialVacation;
-                    // 所定労働時間に対する時間差 = 実働時間 - 実働日数 * 1日あたりの所定労働時間
-                    const difference = actualWorkingMinutes - actualWorkingDays * normalWorkingMinutesPerDay;
-                    // `n時間m分`の形式で表示
-                    const sign = Math.sign(difference) >= 0 ? '+' : ''
-                    const differenceStr = `${sign}${Math.trunc(difference / 60)}時間${difference % 60}分`;
-                    cb(differenceStr);
+                    const actualWorkingHours = table.querySelector('td:nth-child(19)').textContent.split(':').map(Number);
+
+                    // 今日の勤務開始時間
+                    var now = new Date();
+                    var tr  = doc.querySelector(`#fix_0_${now.getDate()}`);
+
+                    // 出社時間
+                    var start = tr.querySelector("td:nth-child(7)").textContent.split(':').map(Number);
+                    // 実働時間
+                    var actual = tr.querySelector("td:nth-child(10)").textContent.split(':').map(Number);
+
+                    var th = (actual.length === 2) ? actual[0] : 0;
+                    var tm = (actual.length === 2) ? actual[1] : 0;
+
+                    if (actual.length !== 2 && start.length === 2) {
+                        var t1 = start[0] * 60 + start[1];
+                        var t2 = now.getHours() * 60 + now.getMinutes();
+                        var df = t2 - t1;
+                        th = Math.floor(df / 60);
+                        tm = df % 60;
+                    }
+
+                    var fh = normalWorkingHours[0];
+                    var fm = normalWorkingHours[1];
+                    var ah = actualWorkingHours[0];
+                    var am = actualWorkingHours[1];
+                    var needDay   = normalWorkingDays - workingDays - paidVacation - specialVacation;
+                    var fixedMin  = /* 時間を分に */ (fh * 60) + fm;
+                    var actualMin = (ah * 60) + am;
+                    var needMin   = (fixedMin - actualMin) <= 0 ? 0 : (fixedMin - actualMin);
+                    var perMin    = Math.floor(needMin / needDay);
+                    var response  = {
+                        "days"    : { "fixed" : normalWorkingDays , "actual" : workingDays , "need" : needDay },
+                        "times"   : {
+                            "fixed"  : { "hour": fh, "min": /* ゼロパディング */  (`00${fm}`).slice(-2) },
+                            "actual" : { "hour": ah, "min": (`00${am}`).slice(-2) },
+                            "need"   : { "hour": Math.floor(needMin / 60), "min": (`00${(needMin % 60)}`).slice(-2) },
+                            "today"  : { "hour": th, "min": (`00${tm}`).slice(-2) },
+                            "perDay" : { "hour": Math.floor(perMin / 60), "min": (`00${(perMin % 60)}`).slice(-2) },
+                        },
+                    };
+                    cb(response);
                 });
         },
 

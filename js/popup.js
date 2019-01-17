@@ -13,7 +13,16 @@ function init() {
     const $options = $('#options');
     const $diff = $('#diff');
     $diff.click(() => KTR.service.getDifference((diff) => {
-        $('#diff').text(diff).removeClass('enabled');
+        $('#diff').removeClass('enabled');
+        $('#fd').text(`${diff.days.fixed}日`);
+        $('#ad').text(`${diff.days.actual}日`);
+        $('#nd').text(`${diff.days.need}日`);
+        $('#ft').text(`${diff.times.fixed.hour}:${diff.times.fixed.min}`);
+        $('#at').text(`${diff.times.actual.hour}:${diff.times.actual.min}`);
+        $('#nt').text(`${diff.times.need.hour}:${diff.times.need.min}`);
+        $('#tpd').text(`${diff.times.perDay.hour}:${diff.times.perDay.min}`);
+        $('#tt').text(`${diff.times.today.hour}:${diff.times.today.min}`);
+        $('#diff .time-table').fadeIn();
     }));
 
     // 認証情報があれば出社、退社を表示
